@@ -1,0 +1,107 @@
+---
+
+- hosts: mons
+  remote_user: root
+  tasks:
+    - name: install firewalld
+      yum:
+        name: firewalld
+        state: latest
+
+    - name: start firewalld
+      systemd:
+        name: firewalld
+        state: started
+
+    - name: check if 6789/tcp is opened
+      become: yes
+      shell: firewall-cmd --list-all | grep '6789'
+      ignore_errors: yes
+      always_run: yes
+      changed_when: false
+      register: result
+
+    - name: firewall 1
+      become: yes
+      shell: firewall-cmd --zone=public --add-port=6789/tcp
+      when: result|failed
+
+    - name: firewall 2
+      become: yes
+      shell: firewall-cmd --zone=public --add-port=6789/tcp --permanent
+      when: result|failed
+
+- hosts: osds
+  remote_user: root
+  tasks:
+    - name: install firewalld
+      yum:
+        name: firewalld
+        state: latest
+
+    - name: start firewalld
+      systemd:
+        name: firewalld
+        state: started
+
+    - name: check if 6789/tcp is opened
+      become: yes
+      shell: firewall-cmd --list-all | grep '6800-7300'
+      ignore_errors: yes
+      always_run: yes
+      changed_when: false
+      register: result
+
+    - name: firewall 1
+      become: yes
+      shell: firewall-cmd --zone=public --add-port=6800-7300/tcp
+      when: result|failed
+
+    - name: firewall 2
+      become: yes
+      shell: firewall-cmd --zone=public --add-port=6800-7300/tcp --permanent
+      when: result|failed
+
+    - name: mkdir for tuned profile throughput-performance-ceph
+      become: yes
+      file: path=/usr/lib/tuned/throughput-performance-ceph state=directory
+
+    - name: copy tuned.conf
+      become: yes
+      copy: src=./tuned.conf dest=/usr/lib/tuned/throughput-performance-ceph/tuned.conf
+
+    - name: set tuned profile to throughput-performance-ceph
+      become: yes
+      shell: tuned-adm profile throughput-performance-ceph
+
+- hosts: mgrs
+  remote_user: root
+  tasks:
+    - name: install firewalld
+      yum:
+        name: firewalld
+        state: latest
+
+    - name: start firewalld
+      systemd:
+        name: firewalld
+        state: started
+
+    - name: check if 6800-7300/tcp is opened
+      become: yes
+      shell: firewall-cmd --list-all | grep '6800-7300'
+      ignore_errors: yes
+      always_run: yes
+      changed_when: false
+      register: result
+
+    - name: firewall 1
+      become: yes
+      shell: firewall-cmd --zone=public --add-port=6800-7300/tcp
+      when: result|failed
+
+    - name: firewall 2
+      become: yes
+      shell: firewall-cmd --zone=public --add-port=6800-7300/tcp --permanent
+      when: result|failed
+
